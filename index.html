@@ -23,7 +23,10 @@
       </div>
 
       <div id="auth-controls" class="flex items-center gap-3">
-        <span id="user-email" class="text-sm text-slate-500 hidden"></span>
+        <button id="open-add-btn" class="hidden text-xs sm:text-sm font-medium bg-indigo-600 text-white px-3.5 py-2 rounded-lg hover:bg-indigo-700 transition">
+          + Add Service
+        </button>
+        <span id="user-email" class="text-sm text-slate-500 hidden sm:inline"></span>
         <button id="open-auth-btn" class="text-sm font-medium bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition">
           Sign In
         </button>
@@ -42,7 +45,7 @@
         Is it down, or is an update dropping?
       </h1>
       <p class="text-slate-500 text-base mb-6">
-        Real-time crowdsourced outage tracking paired with upcoming release dates and version milestones.
+        Real-time crowdsourced outage tracking paired with upcoming release dates and version milestones. Click any card for release notes & live chat.
       </p>
       <div class="relative">
         <input
@@ -64,19 +67,132 @@
 
     <!-- Services Grid -->
     <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <!-- Cards injected via JS -->
       <div class="col-span-full text-center py-12 text-slate-400 text-sm">Loading services...</div>
     </div>
   </main>
 
-  <!-- Auth Modal -->
+  <!-- 1. Service Detail & Comments Modal -->
+  <div id="detail-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-100 overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-6 border-b border-slate-100 flex items-start justify-between">
+        <div>
+          <span id="detail-category" class="text-[11px] font-semibold uppercase tracking-wider text-slate-400"></span>
+          <h2 id="detail-name" class="text-2xl font-bold text-slate-900"></h2>
+        </div>
+        <button id="close-detail-btn" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- Release Info -->
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-500">Upcoming Release: <strong id="detail-release-title" class="text-slate-900"></strong></span>
+            <span id="detail-release-date" class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700"></span>
+          </div>
+          <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Release Notes & Details</span>
+            <p id="detail-release-notes" class="text-sm text-slate-700 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Live Community Feed -->
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Live Community Updates</h3>
+          <div id="comments-list" class="space-y-3 max-h-48 overflow-y-auto mb-4 pr-1">
+            <p class="text-xs text-slate-400">Loading comments...</p>
+          </div>
+
+          <!-- Comment Form -->
+          <form id="comment-form" class="flex gap-2">
+            <input
+              id="comment-input"
+              type="text"
+              placeholder="Sign in to post an update or comment..."
+              disabled
+              class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+            />
+            <button
+              id="comment-submit"
+              type="submit"
+              disabled
+              class="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 transition disabled:opacity-40"
+            >
+              Post
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Add New Service / Release Modal -->
+  <div id="add-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Add Service or Release</h2>
+        <button id="close-add-btn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      </div>
+
+      <form id="add-service-form" class="space-y-3 text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Service Name</label>
+            <input id="new-name" type="text" required placeholder="e.g., Steam" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Category</label>
+            <input id="new-category" type="text" required placeholder="e.g., Gaming" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Current Status</label>
+            <select id="new-status" class="w-full border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900">
+              <option value="operational">Operational</option>
+              <option value="degraded">Degraded</option>
+              <option value="outage">Major Outage</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Current Version</label>
+            <input id="new-version" type="text" placeholder="e.g., v2.1.0" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Next Release Title</label>
+            <input id="new-release-title" type="text" placeholder="e.g., Winter Sale Update" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Release Date</label>
+            <input id="new-release-date" type="date" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Release Notes</label>
+          <textarea id="new-release-notes" rows="3" placeholder="What's changing in this release?" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-slate-900 text-white font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
+          Publish Service
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Auth Modal -->
   <div id="auth-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
       <div class="flex items-center justify-between mb-4">
-        <h2 id="auth-title" class="text-lg font-bold">Welcome to Question</h2>
+        <h2 class="text-lg font-bold">Welcome to Question</h2>
         <button id="close-auth-btn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
       </div>
-      <p class="text-xs text-slate-500 mb-5">Sign in or create an account to track releases and submit verified outage reports.</p>
+      <p class="text-xs text-slate-500 mb-5">Sign in or create an account to post live comments and submit release dates.</p>
 
       <form id="auth-form" class="space-y-3.5">
         <div>
@@ -91,7 +207,7 @@
         <p id="auth-message" class="text-xs text-rose-600 hidden"></p>
 
         <div class="pt-2 flex flex-col gap-2">
-          <button type="submit" id="signin-submit" class="w-full bg-slate-900 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
+          <button type="submit" class="w-full bg-slate-900 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
             Sign In
           </button>
           <button type="button" id="signup-submit" class="w-full bg-slate-100 text-slate-800 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-200 transition">
@@ -110,46 +226,63 @@
 
     let allServices = [];
     let currentFilter = 'all';
+    let currentUser = null;
+    let activeServiceId = null;
 
     // DOM Elements
     const grid = document.getElementById('services-grid');
     const searchInput = document.getElementById('search-input');
     const authModal = document.getElementById('auth-modal');
+    const addModal = document.getElementById('add-modal');
+    const detailModal = document.getElementById('detail-modal');
     const authMessage = document.getElementById('auth-message');
 
     // 2. Auth State Listener
     sb.auth.onAuthStateChange((event, session) => {
-      const user = session?.user;
+      currentUser = session?.user || null;
       const openBtn = document.getElementById('open-auth-btn');
       const signOutBtn = document.getElementById('signout-btn');
+      const addBtn = document.getElementById('open-add-btn');
       const userEmail = document.getElementById('user-email');
+      const commentInput = document.getElementById('comment-input');
+      const commentSubmit = document.getElementById('comment-submit');
 
-      if (user) {
+      if (currentUser) {
         openBtn.classList.add('hidden');
         signOutBtn.classList.remove('hidden');
-        userEmail.textContent = user.email;
+        addBtn.classList.remove('hidden');
+        userEmail.textContent = currentUser.email;
         userEmail.classList.remove('hidden');
         authModal.classList.add('hidden');
+        commentInput.disabled = false;
+        commentInput.placeholder = 'Share an outage update or release note...';
+        commentSubmit.disabled = false;
       } else {
         openBtn.classList.remove('hidden');
         signOutBtn.classList.add('hidden');
+        addBtn.classList.add('hidden');
         userEmail.classList.add('hidden');
+        commentInput.disabled = true;
+        commentInput.placeholder = 'Sign in to post an update or comment...';
+        commentSubmit.disabled = true;
       }
     });
 
-    // Modal Controls
+    // Modal Triggers
     document.getElementById('open-auth-btn').onclick = () => {
       authMessage.classList.add('hidden');
       authModal.classList.remove('hidden');
     };
     document.getElementById('close-auth-btn').onclick = () => authModal.classList.add('hidden');
+    document.getElementById('open-add-btn').onclick = () => addModal.classList.remove('hidden');
+    document.getElementById('close-add-btn').onclick = () => addModal.classList.add('hidden');
+    document.getElementById('close-detail-btn').onclick = () => detailModal.classList.add('hidden');
 
-    // Sign In
+    // Auth Actions
     document.getElementById('auth-form').onsubmit = async (e) => {
       e.preventDefault();
       const email = document.getElementById('email-input').value;
       const password = document.getElementById('password-input').value;
-
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
         authMessage.textContent = error.message;
@@ -157,11 +290,9 @@
       }
     };
 
-    // Sign Up
     document.getElementById('signup-submit').onclick = async () => {
       const email = document.getElementById('email-input').value;
       const password = document.getElementById('password-input').value;
-
       const { error } = await sb.auth.signUp({ email, password });
       if (error) {
         authMessage.textContent = error.message;
@@ -173,10 +304,9 @@
       }
     };
 
-    // Sign Out
     document.getElementById('signout-btn').onclick = () => sb.auth.signOut();
 
-    // 3. Fetch Services from Supabase
+    // 3. Load & Render Services
     async function loadServices() {
       const { data, error } = await sb
         .from('services')
@@ -191,7 +321,6 @@
       renderServices();
     }
 
-    // 4. Render Service Cards
     function renderServices() {
       const query = searchInput.value.toLowerCase();
       const filtered = allServices.filter(s => {
@@ -214,9 +343,8 @@
       grid.innerHTML = filtered.map(service => {
         const st = statusConfig[service.status] || statusConfig.operational;
         return `
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between">
+          <div onclick="openDetailModal(${service.id})" class="cursor-pointer bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-400 transition flex flex-col justify-between">
             <div>
-              <!-- Top Row -->
               <div class="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">${service.category}</span>
@@ -228,7 +356,6 @@
                 </span>
               </div>
 
-              <!-- Release & Version Info Box -->
               <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 mb-4 grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span class="text-slate-400 block mb-0.5">Next Release</span>
@@ -244,13 +371,12 @@
               </div>
             </div>
 
-            <!-- Bottom Actions -->
             <div class="flex items-center justify-between pt-2 border-t border-slate-100">
               <span class="text-xs text-slate-500">
-                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> user reports (24h)
+                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> reports (24h) &middot; <span class="text-indigo-600 font-medium">View Notes & Chat</span>
               </span>
               <button
-                onclick="reportIssue(${service.id}, ${service.reports_count})"
+                onclick="event.stopPropagation(); reportIssue(${service.id}, ${service.reports_count})"
                 class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition"
               >
                 Report Issue
@@ -261,7 +387,7 @@
       }).join('');
     }
 
-    // 5. Increment Outage Report Count
+    // 4. Report Outage
     async function reportIssue(id, currentCount) {
       const { error } = await sb
         .from('services')
@@ -275,7 +401,90 @@
       }
     }
 
-    // Search & Filter Listeners
+    // 5. Add New Service / Release
+    document.getElementById('add-service-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const newService = {
+        name: document.getElementById('new-name').value,
+        category: document.getElementById('new-category').value,
+        status: document.getElementById('new-status').value,
+        latest_version: document.getElementById('new-version').value,
+        next_release_title: document.getElementById('new-release-title').value,
+        next_release_date: document.getElementById('new-release-date').value || null,
+        release_notes: document.getElementById('new-release-notes').value || 'No release notes provided.'
+      };
+
+      const { error } = await sb.from('services').insert([newService]);
+      if (!error) {
+        addModal.classList.add('hidden');
+        e.target.reset();
+        loadServices();
+      }
+    };
+
+    // 6. Service Detail Modal & Comments
+    async function openDetailModal(serviceId) {
+      activeServiceId = serviceId;
+      const service = allServices.find(s => s.id === serviceId);
+      if (!service) return;
+
+      document.getElementById('detail-category').textContent = service.category;
+      document.getElementById('detail-name').textContent = service.name;
+      document.getElementById('detail-release-title').textContent = service.next_release_title || 'TBA';
+      document.getElementById('detail-release-date').textContent = service.next_release_date || 'No date';
+      document.getElementById('detail-release-notes').textContent = service.release_notes || 'No detailed changelog provided yet.';
+
+      detailModal.classList.remove('hidden');
+      loadComments(serviceId);
+    }
+
+    async function loadComments(serviceId) {
+      const list = document.getElementById('comments-list');
+      list.innerHTML = `<p class="text-xs text-slate-400">Loading comments...</p>`;
+
+      const { data, error } = await sb
+        .from('comments')
+        .select('*')
+        .eq('service_id', serviceId)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-400">No updates posted yet. Be the first to share!</p>`;
+        return;
+      }
+
+      list.innerHTML = data.map(c => `
+        <div class="bg-slate-50 rounded-lg p-3 border border-slate-100 text-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1">
+            <span class="font-medium text-slate-700">${c.user_email.split('@')[0]}</span>
+            <span>${new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <p class="text-slate-700">${c.content}</p>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('comment-form').onsubmit = async (e) => {
+      e.preventDefault();
+      if (!currentUser || !activeServiceId) return;
+
+      const input = document.getElementById('comment-input');
+      const content = input.value.trim();
+      if (!content) return;
+
+      const { error } = await sb.from('comments').insert([{
+        service_id: activeServiceId,
+        user_email: currentUser.email,
+        content
+      }]);
+
+      if (!error) {
+        input.value = '';
+        loadComments(activeServiceId);
+      }
+    };
+
+    // Search & Filters
     searchInput.addEventListener('input', renderServices);
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.onclick = () => {
@@ -290,7 +499,6 @@
       };
     });
 
-    // Initial Load
     loadServices();
   </script>
 </body>
