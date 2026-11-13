@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question — Live Outages & Release Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-lg">?</div>
+        <span class="font-bold text-xl tracking-tight">Question</span>
+      </div>
+
+      <div id="auth-controls" class="flex items-center gap-3">
+        <span id="user-email" class="text-sm text-slate-500 hidden"></span>
+        <button id="open-auth-btn" class="text-sm font-medium bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition">
+          Sign In
+        </button>
+        <button id="signout-btn" class="hidden text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 transition">
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <!-- Hero & Search -->
+    <div class="max-w-2xl mb-10">
+      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mb-3">
+        Is it down, or is an update dropping?
+      </h1>
+      <p class="text-slate-500 text-base mb-6">
+        Real-time crowdsourced outage tracking paired with upcoming release dates and version milestones.
+      </p>
+      <div class="relative">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search services (e.g., Discord, OpenAI, GitHub)..."
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+        />
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+      <button data-filter="all" class="filter-btn active px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-white">All Services</button>
+      <button data-filter="outage" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">Active Outages</button>
+      <button data-filter="degraded" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">Degraded</button>
+      <button data-filter="operational" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">Operational</button>
+    </div>
+
+    <!-- Services Grid -->
+    <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- Cards injected via JS -->
+      <div class="col-span-full text-center py-12 text-slate-400 text-sm">Loading services...</div>
+    </div>
+  </main>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="auth-title" class="text-lg font-bold">Welcome to Question</h2>
+        <button id="close-auth-btn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500 mb-5">Sign in or create an account to track releases and submit verified outage reports.</p>
+
+      <form id="auth-form" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Email</label>
+          <input id="email-input" type="email" required placeholder="you@example.com" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Password</label>
+          <input id="password-input" type="password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        </div>
+
+        <p id="auth-message" class="text-xs text-rose-600 hidden"></p>
+
+        <div class="pt-2 flex flex-col gap-2">
+          <button type="submit" id="signin-submit" class="w-full bg-slate-900 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
+            Sign In
+          </button>
+          <button type="button" id="signup-submit" class="w-full bg-slate-100 text-slate-800 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-200 transition">
+            Create Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 1. Initialize Supabase
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let allServices = [];
+    let currentFilter = 'all';
+
+    // DOM Elements
+    const grid = document.getElementById('services-grid');
+    const searchInput = document.getElementById('search-input');
+    const authModal = document.getElementById('auth-modal');
+    const authMessage = document.getElementById('auth-message');
+
+    // 2. Auth State Listener
+    sb.auth.onAuthStateChange((event, session) => {
+      const user = session?.user;
+      const openBtn = document.getElementById('open-auth-btn');
+      const signOutBtn = document.getElementById('signout-btn');
+      const userEmail = document.getElementById('user-email');
+
+      if (user) {
+        openBtn.classList.add('hidden');
+        signOutBtn.classList.remove('hidden');
+        userEmail.textContent = user.email;
+        userEmail.classList.remove('hidden');
+        authModal.classList.add('hidden');
+      } else {
+        openBtn.classList.remove('hidden');
+        signOutBtn.classList.add('hidden');
+        userEmail.classList.add('hidden');
+      }
+    });
+
+    // Modal Controls
+    document.getElementById('open-auth-btn').onclick = () => {
+      authMessage.classList.add('hidden');
+      authModal.classList.remove('hidden');
+    };
+    document.getElementById('close-auth-btn').onclick = () => authModal.classList.add('hidden');
+
+    // Sign In
+    document.getElementById('auth-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email-input').value;
+      const password = document.getElementById('password-input').value;
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        authMessage.textContent = error.message;
+        authMessage.classList.remove('hidden');
+      }
+    };
+
+    // Sign Up
+    document.getElementById('signup-submit').onclick = async () => {
+      const email = document.getElementById('email-input').value;
+      const password = document.getElementById('password-input').value;
+
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) {
+        authMessage.textContent = error.message;
+        authMessage.classList.remove('hidden');
+      } else {
+        authMessage.textContent = 'Account created! Check your email if confirmation is enabled.';
+        authMessage.classList.remove('hidden', 'text-rose-600');
+        authMessage.classList.add('text-emerald-600');
+      }
+    };
+
+    // Sign Out
+    document.getElementById('signout-btn').onclick = () => sb.auth.signOut();
+
+    // 3. Fetch Services from Supabase
+    async function loadServices() {
+      const { data, error } = await sb
+        .from('services')
+        .select('*')
+        .order('reports_count', { ascending: false });
+
+      if (error) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-rose-500 text-sm">Error loading services. Check your Supabase URL and Key.</div>`;
+        return;
+      }
+      allServices = data;
+      renderServices();
+    }
+
+    // 4. Render Service Cards
+    function renderServices() {
+      const query = searchInput.value.toLowerCase();
+      const filtered = allServices.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query);
+        const matchesFilter = currentFilter === 'all' || s.status === currentFilter;
+        return matchesSearch && matchesFilter;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-sm">No matching services found.</div>`;
+        return;
+      }
+
+      const statusConfig = {
+        operational: { label: 'Operational', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        degraded: { label: 'Degraded Performance', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+        outage: { label: 'Major Outage', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200' }
+      };
+
+      grid.innerHTML = filtered.map(service => {
+        const st = statusConfig[service.status] || statusConfig.operational;
+        return `
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between">
+            <div>
+              <!-- Top Row -->
+              <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">${service.category}</span>
+                  <h3 class="text-lg font-bold text-slate-900">${service.name}</h3>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${st.badge}">
+                  <span class="w-1.5 h-1.5 rounded-full ${st.dot}"></span>
+                  ${st.label}
+                </span>
+              </div>
+
+              <!-- Release & Version Info Box -->
+              <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 mb-4 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span class="text-slate-400 block mb-0.5">Next Release</span>
+                  <span class="font-semibold text-slate-800 block truncate">${service.next_release_title || 'TBA'}</span>
+                  <span class="text-slate-500">${service.next_release_date || 'No date set'}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block mb-0.5">Current Version</span>
+                  <span class="font-mono font-medium text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block">
+                    ${service.latest_version || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span class="text-xs text-slate-500">
+                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> user reports (24h)
+              </span>
+              <button
+                onclick="reportIssue(${service.id}, ${service.reports_count})"
+                class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition"
+              >
+                Report Issue
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 5. Increment Outage Report Count
+    async function reportIssue(id, currentCount) {
+      const { error } = await sb
+        .from('services')
+        .update({ reports_count: currentCount + 1 })
+        .eq('id', id);
+
+      if (!error) {
+        const target = allServices.find(s => s.id === id);
+        if (target) target.reports_count += 1;
+        renderServices();
+      }
+    }
+
+    // Search & Filter Listeners
+    searchInput.addEventListener('input', renderServices);
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.remove('bg-slate-900', 'text-white');
+          b.classList.add('bg-white', 'border', 'border-slate-200', 'text-slate-600');
+        });
+        btn.classList.add('bg-slate-900', 'text-white');
+        btn.classList.remove('bg-white', 'border', 'border-slate-200', 'text-slate-600');
+        currentFilter = btn.dataset.filter;
+        renderServices();
+      };
+    });
+
+    // Initial Load
+    loadServices();
+  </script>
+</body>
+</html>
