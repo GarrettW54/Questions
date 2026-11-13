@@ -541,7 +541,7 @@ ${JSON.stringify(allServices)}
 User Question: ${question}`;
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AQ.Ab8RN6IRITnj2t3UUwBoFgHlFm5XpNoaN_3nCVsvX65WaUheug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
