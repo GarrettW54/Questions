@@ -516,7 +516,33 @@
         renderServices();
       };
     });
+// AI Question Handler
+document.getElementById('ai-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('ai-input');
+  const btn = document.getElementById('ai-submit');
+  const responseBox = document.getElementById('ai-response-box');
+  const question = input.value.trim();
+  if (!question) return;
 
+  btn.disabled = true;
+  btn.textContent = 'Thinking...';
+  responseBox.classList.remove('hidden');
+  responseBox.innerHTML = '<span class="text-slate-400">Checking live statuses & release notes...</span>';
+
+  const { data, error } = await sb.functions.invoke('ask-ai', {
+    body: { question, servicesContext: allServices }
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Ask AI';
+
+  if (error || !data?.answer) {
+    responseBox.innerHTML = '<span class="text-rose-600">Could not reach AI assistant. Check your Edge Function setup.</span>';
+  } else {
+    responseBox.textContent = data.answer;
+  }
+};
     loadServices();
   </script>
 </body>
