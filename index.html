@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Questions — Live Outages & Release Tracker</title>
+  <title>Question — Live Outages & Release Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,8 +45,10 @@
         Is it down, or is an update dropping?
       </h1>
       <p class="text-slate-500 text-base mb-6">
-        Real-time crowdsourced outage tracking paired with upcoming release dates and version milestones. Click any card for release notes & live chat.
+        Real-time crowdsourced outage tracking paired with upcoming release dates, live countdowns, and an AI assistant.
       </p>
+      
+      <!-- Search Input -->
       <div class="relative">
         <input
           id="search-input"
@@ -55,26 +57,28 @@
           class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
         />
       </div>
+
+      <!-- Ask AI Bar -->
+      <div class="mt-4 bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
+        <form id="ai-form" class="flex gap-2">
+          <input
+            id="ai-input"
+            type="text"
+            placeholder="Ask Question AI (e.g., 'Which services are down?' or 'When is the next Discord update?')..."
+            class="flex-1 text-sm px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          />
+          <button
+            id="ai-submit"
+            type="submit"
+            class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition shrink-0"
+          >
+            Ask AI
+          </button>
+        </form>
+        <div id="ai-response-box" class="hidden mt-3 pt-3 border-t border-slate-100 text-sm text-slate-700 leading-relaxed"></div>
+      </div>
     </div>
-<!-- Ask AI Bar -->
-<div class="mt-4 bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
-  <form id="ai-form" class="flex gap-2">
-    <input
-      id="ai-input"
-      type="text"
-      placeholder="Ask Question AI (e.g., 'Which services are down?' or 'When is the next Discord update?')..."
-      class="flex-1 text-sm px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-    />
-    <button
-      id="ai-submit"
-      type="submit"
-      class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition shrink-0"
-    >
-      Ask AI
-    </button>
-  </form>
-  <div id="ai-response-box" class="hidden mt-3 pt-3 border-t border-slate-100 text-sm text-slate-700 leading-relaxed"></div>
-</div>
+
     <!-- Filter Tabs -->
     <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
       <button data-filter="all" class="filter-btn active px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-white">All Services</button>
@@ -89,7 +93,7 @@
     </div>
   </main>
 
-  <!-- 1. Service Detail & Comments Modal -->
+  <!-- Service Detail & Realtime Comments Modal -->
   <div id="detail-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-100 overflow-hidden">
       <!-- Modal Header -->
@@ -101,33 +105,32 @@
         <button id="close-detail-btn" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
       </div>
 
-      <!-- Modal Body (Scrollable) -->
+      <!-- Modal Body -->
       <div class="p-6 overflow-y-auto space-y-6">
         <!-- Release Info -->
         <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
           <div class="flex items-center justify-between text-xs">
             <span class="text-slate-500">Upcoming Release: <strong id="detail-release-title" class="text-slate-900"></strong></span>
-            <span id="detail-release-date" class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700"></span>
+            <span id="detail-release-badge" class="font-mono px-2.5 py-0.5 rounded border font-semibold"></span>
           </div>
           <div>
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Release Notes & Details</span>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Release Notes</span>
             <p id="detail-release-notes" class="text-sm text-slate-700 leading-relaxed"></p>
           </div>
         </div>
 
-        <!-- Live Community Feed -->
+        <!-- Live Chat Stream -->
         <div>
-          <h3 class="text-sm font-bold text-slate-900 mb-3">Live Community Updates</h3>
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Live Realtime Updates</h3>
           <div id="comments-list" class="space-y-3 max-h-48 overflow-y-auto mb-4 pr-1">
-            <p class="text-xs text-slate-400">Loading comments...</p>
+            <p class="text-xs text-slate-400">Loading updates...</p>
           </div>
 
-          <!-- Comment Form -->
           <form id="comment-form" class="flex gap-2">
             <input
               id="comment-input"
               type="text"
-              placeholder="Sign in to post an update or comment..."
+              placeholder="Sign in to post an update..."
               disabled
               class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
             />
@@ -145,7 +148,7 @@
     </div>
   </div>
 
-  <!-- 2. Add New Service / Release Modal -->
+  <!-- Add Service Modal -->
   <div id="add-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
       <div class="flex items-center justify-between mb-4">
@@ -183,7 +186,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-700 mb-1">Next Release Title</label>
-            <input id="new-release-title" type="text" placeholder="e.g., Winter Sale Update" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+            <input id="new-release-title" type="text" placeholder="e.g., Winter Update" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-700 mb-1">Release Date</label>
@@ -193,7 +196,7 @@
 
         <div>
           <label class="block text-xs font-medium text-slate-700 mb-1">Release Notes</label>
-          <textarea id="new-release-notes" rows="3" placeholder="What's changing in this release?" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"></textarea>
+          <textarea id="new-release-notes" rows="3" placeholder="What's changing?" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"></textarea>
         </div>
 
         <button type="submit" class="w-full bg-slate-900 text-white font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
@@ -203,15 +206,13 @@
     </div>
   </div>
 
-  <!-- 3. Auth Modal -->
+  <!-- Auth Modal -->
   <div id="auth-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold">Welcome to Question</h2>
         <button id="close-auth-btn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
       </div>
-      <p class="text-xs text-slate-500 mb-5">Sign in or create an account to post live comments and submit release dates.</p>
-
       <form id="auth-form" class="space-y-3.5">
         <div>
           <label class="block text-xs font-medium text-slate-700 mb-1">Email</label>
@@ -221,9 +222,7 @@
           <label class="block text-xs font-medium text-slate-700 mb-1">Password</label>
           <input id="password-input" type="password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
         </div>
-
         <p id="auth-message" class="text-xs text-rose-600 hidden"></p>
-
         <div class="pt-2 flex flex-col gap-2">
           <button type="submit" class="w-full bg-slate-900 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-slate-800 transition">
             Sign In
@@ -236,10 +235,10 @@
     </div>
   </div>
 
+  <!-- JavaScript Application Logic -->
   <script>
-    // 1. Initialize Supabase
     const SUPABASE_URL = 'https://enblzxuluruuijajowfb.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuYmx6eHVsdXJ1dWlqYWpvd2ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1NDE5NzksImV4cCI6MjExMDExNzk3OX0.LghFwXeSwJyZ7mkMgrBkAGMobyAk4aMZE6xrgHJUI08';
+    const SUPABASE_ANON_KEY = 'https://enblzxuluruuijajowfb.supabase.co/rest/v1/Y';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allServices = [];
@@ -247,7 +246,6 @@
     let currentUser = null;
     let activeServiceId = null;
 
-    // DOM Elements
     const grid = document.getElementById('services-grid');
     const searchInput = document.getElementById('search-input');
     const authModal = document.getElementById('auth-modal');
@@ -255,7 +253,7 @@
     const detailModal = document.getElementById('detail-modal');
     const authMessage = document.getElementById('auth-message');
 
-    // 2. Auth State Listener
+    // Auth State Listener
     sb.auth.onAuthStateChange((event, session) => {
       currentUser = session?.user || null;
       const openBtn = document.getElementById('open-auth-btn');
@@ -273,7 +271,7 @@
         userEmail.classList.remove('hidden');
         authModal.classList.add('hidden');
         commentInput.disabled = false;
-        commentInput.placeholder = 'Share an outage update or release note...';
+        commentInput.placeholder = 'Share a live update...';
         commentSubmit.disabled = false;
       } else {
         openBtn.classList.remove('hidden');
@@ -281,16 +279,13 @@
         addBtn.classList.add('hidden');
         userEmail.classList.add('hidden');
         commentInput.disabled = true;
-        commentInput.placeholder = 'Sign in to post an update or comment...';
+        commentInput.placeholder = 'Sign in to post an update...';
         commentSubmit.disabled = true;
       }
     });
 
-    // Modal Triggers
-    document.getElementById('open-auth-btn').onclick = () => {
-      authMessage.classList.add('hidden');
-      authModal.classList.remove('hidden');
-    };
+    // Modals
+    document.getElementById('open-auth-btn').onclick = () => { authMessage.classList.add('hidden'); authModal.classList.remove('hidden'); };
     document.getElementById('close-auth-btn').onclick = () => authModal.classList.add('hidden');
     document.getElementById('open-add-btn').onclick = () => addModal.classList.remove('hidden');
     document.getElementById('close-add-btn').onclick = () => addModal.classList.add('hidden');
@@ -299,46 +294,74 @@
     // Auth Actions
     document.getElementById('auth-form').onsubmit = async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email-input').value;
-      const password = document.getElementById('password-input').value;
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) {
-        authMessage.textContent = error.message;
-        authMessage.classList.remove('hidden');
-      }
+      const { error } = await sb.auth.signInWithPassword({
+        email: document.getElementById('email-input').value,
+        password: document.getElementById('password-input').value
+      });
+      if (error) { authMessage.textContent = error.message; authMessage.classList.remove('hidden'); }
     };
 
     document.getElementById('signup-submit').onclick = async () => {
-      const email = document.getElementById('email-input').value;
-      const password = document.getElementById('password-input').value;
-      const { error } = await sb.auth.signUp({ email, password });
-      if (error) {
-        authMessage.textContent = error.message;
-        authMessage.classList.remove('hidden');
-      } else {
-        authMessage.textContent = 'Account created! Check your email if confirmation is enabled.';
-        authMessage.classList.remove('hidden', 'text-rose-600');
-        authMessage.classList.add('text-emerald-600');
-      }
+      const { error } = await sb.auth.signUp({
+        email: document.getElementById('email-input').value,
+        password: document.getElementById('password-input').value
+      });
+      if (error) { authMessage.textContent = error.message; authMessage.classList.remove('hidden'); }
+      else { authMessage.textContent = 'Check your email for confirmation!'; authMessage.classList.remove('hidden', 'text-rose-600'); authMessage.classList.add('text-emerald-600'); }
     };
 
     document.getElementById('signout-btn').onclick = () => sb.auth.signOut();
 
-    // 3. Load & Render Services
-    async function loadServices() {
-      const { data, error } = await sb
-        .from('services')
-        .select('*')
-        .order('reports_count', { ascending: false });
+    // AI Assistant Question Handler (Supabase Edge Function)
+    document.getElementById('ai-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('ai-input');
+      const btn = document.getElementById('ai-submit');
+      const responseBox = document.getElementById('ai-response-box');
+      const question = input.value.trim();
+      if (!question) return;
 
-      if (error) {
-        grid.innerHTML = `<div class="col-span-full text-center py-10 text-rose-500 text-sm">Error loading services. Check your Supabase URL and Key.</div>`;
-        return;
+      btn.disabled = true;
+      btn.textContent = 'Thinking...';
+      responseBox.classList.remove('hidden');
+      responseBox.innerHTML = '<span class="text-slate-400">Checking live statuses & release notes...</span>';
+
+      const { data, error } = await sb.functions.invoke('ask-ai', {
+        body: { question, servicesContext: allServices }
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Ask AI';
+
+      if (error || !data?.answer) {
+        responseBox.innerHTML = '<span class="text-rose-600">Could not reach AI assistant. Check your Supabase Edge Function setup.</span>';
+      } else {
+        responseBox.textContent = data.answer;
       }
-      allServices = data;
-      renderServices();
+    };
+
+    // Calculate Countdown Badge
+    function getCountdownBadge(dateStr) {
+      if (!dateStr) return { text: 'TBA', class: 'bg-slate-100 text-slate-600 border-slate-200' };
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const target = new Date(dateStr);
+      target.setHours(0,0,0,0);
+      const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) return { text: `Released ${Math.abs(diffDays)}d ago`, class: 'bg-slate-100 text-slate-600 border-slate-200' };
+      if (diffDays === 0) return { text: 'Dropping Today!', class: 'bg-rose-50 text-rose-700 border-rose-200' };
+      if (diffDays === 1) return { text: 'Tomorrow', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+      return { text: `In ${diffDays} days`, class: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
     }
 
+    // Load Services
+    async function loadServices() {
+      const { data, error } = await sb.from('services').select('*').order('reports_count', { ascending: false });
+      if (!error) { allServices = data; renderServices(); }
+    }
+
+    // Render Services Grid
     function renderServices() {
       const query = searchInput.value.toLowerCase();
       const filtered = allServices.filter(s => {
@@ -354,12 +377,13 @@
 
       const statusConfig = {
         operational: { label: 'Operational', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-        degraded: { label: 'Degraded Performance', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+        degraded: { label: 'Degraded', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
         outage: { label: 'Major Outage', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200' }
       };
 
       grid.innerHTML = filtered.map(service => {
         const st = statusConfig[service.status] || statusConfig.operational;
+        const countdown = getCountdownBadge(service.next_release_date);
         return `
           <div onclick="openDetailModal(${service.id})" class="cursor-pointer bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-400 transition flex flex-col justify-between">
             <div>
@@ -378,10 +402,10 @@
                 <div>
                   <span class="text-slate-400 block mb-0.5">Next Release</span>
                   <span class="font-semibold text-slate-800 block truncate">${service.next_release_title || 'TBA'}</span>
-                  <span class="text-slate-500">${service.next_release_date || 'No date set'}</span>
+                  <span class="inline-block mt-1 px-2 py-0.5 rounded border font-medium ${countdown.class}">${countdown.text}</span>
                 </div>
                 <div>
-                  <span class="text-slate-400 block mb-0.5">Current Version</span>
+                  <span class="text-slate-400 block mb-0.5">Version</span>
                   <span class="font-mono font-medium text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block">
                     ${service.latest_version || 'N/A'}
                   </span>
@@ -391,12 +415,9 @@
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-100">
               <span class="text-xs text-slate-500">
-                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> reports (24h) &middot; <span class="text-indigo-600 font-medium">View Notes & Chat</span>
+                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> reports &middot; <span class="text-indigo-600 font-medium">View Chat</span>
               </span>
-              <button
-                onclick="event.stopPropagation(); reportIssue(${service.id}, ${service.reports_count})"
-                class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition"
-              >
+              <button onclick="event.stopPropagation(); reportIssue(${service.id}, ${service.reports_count})" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition">
                 Report Issue
               </button>
             </div>
@@ -405,21 +426,11 @@
       }).join('');
     }
 
-    // 4. Report Outage
     async function reportIssue(id, currentCount) {
-      const { error } = await sb
-        .from('services')
-        .update({ reports_count: currentCount + 1 })
-        .eq('id', id);
-
-      if (!error) {
-        const target = allServices.find(s => s.id === id);
-        if (target) target.reports_count += 1;
-        renderServices();
-      }
+      await sb.from('services').update({ reports_count: currentCount + 1 }).eq('id', id);
     }
 
-    // 5. Add New Service / Release
+    // Add Service Handler
     document.getElementById('add-service-form').onsubmit = async (e) => {
       e.preventDefault();
       const newService = {
@@ -431,16 +442,11 @@
         next_release_date: document.getElementById('new-release-date').value || null,
         release_notes: document.getElementById('new-release-notes').value || 'No release notes provided.'
       };
-
       const { error } = await sb.from('services').insert([newService]);
-      if (!error) {
-        addModal.classList.add('hidden');
-        e.target.reset();
-        loadServices();
-      }
+      if (!error) { addModal.classList.add('hidden'); e.target.reset(); }
     };
 
-    // 6. Service Detail Modal & Comments
+    // Detail Modal & Comments
     async function openDetailModal(serviceId) {
       activeServiceId = serviceId;
       const service = allServices.find(s => s.id === serviceId);
@@ -449,8 +455,11 @@
       document.getElementById('detail-category').textContent = service.category;
       document.getElementById('detail-name').textContent = service.name;
       document.getElementById('detail-release-title').textContent = service.next_release_title || 'TBA';
-      document.getElementById('detail-release-date').textContent = service.next_release_date || 'No date';
-      document.getElementById('detail-release-notes').textContent = service.release_notes || 'No detailed changelog provided yet.';
+      const badge = getCountdownBadge(service.next_release_date);
+      const badgeEl = document.getElementById('detail-release-badge');
+      badgeEl.className = `font-mono px-2.5 py-0.5 rounded border font-semibold ${badge.class}`;
+      badgeEl.textContent = badge.text;
+      document.getElementById('detail-release-notes').textContent = service.release_notes || 'No notes provided.';
 
       detailModal.classList.remove('hidden');
       loadComments(serviceId);
@@ -458,19 +467,12 @@
 
     async function loadComments(serviceId) {
       const list = document.getElementById('comments-list');
-      list.innerHTML = `<p class="text-xs text-slate-400">Loading comments...</p>`;
-
-      const { data, error } = await sb
-        .from('comments')
-        .select('*')
-        .eq('service_id', serviceId)
-        .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        list.innerHTML = `<p class="text-xs text-slate-400">No updates posted yet. Be the first to share!</p>`;
+      const { data } = await sb.from('comments').select('*').eq('service_id', serviceId).order('created_at', { ascending: false });
+      
+      if (!data || data.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-400">No updates yet. Be the first!</p>`;
         return;
       }
-
       list.innerHTML = data.map(c => `
         <div class="bg-slate-50 rounded-lg p-3 border border-slate-100 text-xs">
           <div class="flex items-center justify-between text-slate-400 mb-1">
@@ -485,24 +487,32 @@
     document.getElementById('comment-form').onsubmit = async (e) => {
       e.preventDefault();
       if (!currentUser || !activeServiceId) return;
-
       const input = document.getElementById('comment-input');
-      const content = input.value.trim();
-      if (!content) return;
+      if (!input.value.trim()) return;
 
-      const { error } = await sb.from('comments').insert([{
+      await sb.from('comments').insert([{
         service_id: activeServiceId,
         user_email: currentUser.email,
-        content
+        content: input.value.trim()
       }]);
-
-      if (!error) {
-        input.value = '';
-        loadComments(activeServiceId);
-      }
+      input.value = '';
     };
 
-    // Search & Filters
+    // Supabase Realtime Subscriptions
+    sb.channel('public-db')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
+        loadServices();
+        if (activeServiceId && payload.new && payload.new.id === activeServiceId) {
+          openDetailModal(activeServiceId);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
+        if (activeServiceId && payload.new && payload.new.service_id === activeServiceId) {
+          loadComments(activeServiceId);
+        }
+      })
+      .subscribe();
+
     searchInput.addEventListener('input', renderServices);
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.onclick = () => {
@@ -516,47 +526,8 @@
         renderServices();
       };
     });
-// AI Assistant Question Handler (Direct to Gemini API)
-    document.getElementById('ai-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('ai-input');
-      const btn = document.getElementById('ai-submit');
-      const responseBox = document.getElementById('ai-response-box');
-      const question = input.value.trim();
-      if (!question) return;
 
-      btn.disabled = true;
-      btn.textContent = 'Thinking...';
-      responseBox.classList.remove('hidden');
-      responseBox.innerHTML = '<span class="text-slate-400">Consulting AI with live database context...</span>';
-
-      const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // <-- Paste your key here
-
-      const prompt = `You are the AI assistant for "Question", a live outage and release date tracking website. 
-Use the live database context below to answer the user's question clearly and concisely. If the answer isn't in the context, use your general knowledge.
-
-Live Database Context:
-${JSON.stringify(allServices)}
-
-User Question: ${question}`;
-
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        const data = await res.json();
-        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an answer right now.";
-        responseBox.textContent = answer;
-      } catch (err) {
-        responseBox.innerHTML = '<span class="text-rose-600">Failed to connect to Gemini AI. Check your API key.</span>';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Ask AI';
-      }
-    };
+    loadServices();
   </script>
 </body>
 </html>
