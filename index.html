@@ -325,7 +325,7 @@
       responseBox.classList.remove('hidden');
       responseBox.innerHTML = '<span class="text-slate-400">Consulting AI with live database context...</span>';
 
-      const GEMINI_API_KEY = 'AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig'; // <-- Double check this key
+      const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // <-- Put your Google AI Studio key here
 
       const prompt = `You are the AI assistant for "Question", a live outage and release date tracking website. 
 Use the live database context below to answer the user's question clearly and concisely. If the answer isn't in the context, use your general knowledge.
@@ -336,101 +336,23 @@ ${JSON.stringify(allServices)}
 User Question: ${question}`;
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         const data = await res.json();
-        
-        if (data.error) {
-          throw new Error(data.error.message || 'API Error');
-        }
-
         const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an answer right now.";
         responseBox.textContent = answer;
       } catch (err) {
-        responseBox.innerHTML = `<span class="text-rose-600">Error: ${err.message || 'Failed to connect to Gemini AI.'}</span>`;
+        responseBox.innerHTML = '<span class="text-rose-600">Failed to connect to Gemini AI. Check your API key.</span>';
       } finally {
         btn.disabled = false;
         btn.textContent = 'Ask AI';
       }
     };
-    // Load Services
-    async function loadServices() {
-      const { data, error } = await sb.from('services').select('*').order('reports_count', { ascending: false });
-      if (!error) { allServices = data; renderServices(); }
-    }
-
-    // Render Services Grid
-    function renderServices() {
-      const query = searchInput.value.toLowerCase();
-      const filtered = allServices.filter(s => {
-        const matchesSearch = s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query);
-        const matchesFilter = currentFilter === 'all' || s.status === currentFilter;
-        return matchesSearch && matchesFilter;
-      });
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-sm">No matching services found.</div>`;
-        return;
-      }
-
-      const statusConfig = {
-        operational: { label: 'Operational', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-        degraded: { label: 'Degraded', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-        outage: { label: 'Major Outage', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200' }
-      };
-
-      grid.innerHTML = filtered.map(service => {
-        const st = statusConfig[service.status] || statusConfig.operational;
-        const countdown = getCountdownBadge(service.next_release_date);
-        return `
-          <div onclick="openDetailModal(${service.id})" class="cursor-pointer bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:border-slate-400 transition flex flex-col justify-between">
-            <div>
-              <div class="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">${service.category}</span>
-                  <h3 class="text-lg font-bold text-slate-900">${service.name}</h3>
-                </div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${st.badge}">
-                  <span class="w-1.5 h-1.5 rounded-full ${st.dot}"></span>
-                  ${st.label}
-                </span>
-              </div>
-
-              <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 mb-4 grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span class="text-slate-400 block mb-0.5">Next Release</span>
-                  <span class="font-semibold text-slate-800 block truncate">${service.next_release_title || 'TBA'}</span>
-                  <span class="inline-block mt-1 px-2 py-0.5 rounded border font-medium ${countdown.class}">${countdown.text}</span>
-                </div>
-                <div>
-                  <span class="text-slate-400 block mb-0.5">Version</span>
-                  <span class="font-mono font-medium text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block">
-                    ${service.latest_version || 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span class="text-xs text-slate-500">
-                <strong class="text-slate-900 font-semibold">${service.reports_count}</strong> reports &middot; <span class="text-indigo-600 font-medium">View Chat</span>
-              </span>
-              <button onclick="event.stopPropagation(); reportIssue(${service.id}, ${service.reports_count})" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition">
-                Report Issue
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    async function reportIssue(id, currentCount) {
-      await sb.from('services').update({ reports_count: currentCount + 1 }).eq('id', id);
-    }
+   
 
     // Add Service Handler
     document.getElementById('add-service-form').onsubmit = async (e) => {
