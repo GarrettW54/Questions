@@ -516,34 +516,47 @@
         renderServices();
       };
     });
-// AI Question Handler
-document.getElementById('ai-form').onsubmit = async (e) => {
-  e.preventDefault();
-  const input = document.getElementById('ai-input');
-  const btn = document.getElementById('ai-submit');
-  const responseBox = document.getElementById('ai-response-box');
-  const question = input.value.trim();
-  if (!question) return;
+// AI Assistant Question Handler (Direct to Gemini API)
+    document.getElementById('ai-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('ai-input');
+      const btn = document.getElementById('ai-submit');
+      const responseBox = document.getElementById('ai-response-box');
+      const question = input.value.trim();
+      if (!question) return;
 
-  btn.disabled = true;
-  btn.textContent = 'Thinking...';
-  responseBox.classList.remove('hidden');
-  responseBox.innerHTML = '<span class="text-slate-400">Checking live statuses & release notes...</span>';
+      btn.disabled = true;
+      btn.textContent = 'Thinking...';
+      responseBox.classList.remove('hidden');
+      responseBox.innerHTML = '<span class="text-slate-400">Consulting AI with live database context...</span>';
 
-  const { data, error } = await sb.functions.invoke('ask-ai', {
-    body: { question, servicesContext: allServices }
-  });
+      const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // <-- Paste your key here
 
-  btn.disabled = false;
-  btn.textContent = 'Ask AI';
+      const prompt = `You are the AI assistant for "Question", a live outage and release date tracking website. 
+Use the live database context below to answer the user's question clearly and concisely. If the answer isn't in the context, use your general knowledge.
 
-  if (error || !data?.answer) {
-    responseBox.innerHTML = '<span class="text-rose-600">Could not reach AI assistant. Check your Edge Function setup.</span>';
-  } else {
-    responseBox.textContent = data.answer;
-  }
-};
-    loadServices();
+Live Database Context:
+${JSON.stringify(allServices)}
+
+User Question: ${question}`;
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await res.json();
+        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an answer right now.";
+        responseBox.textContent = answer;
+      } catch (err) {
+        responseBox.innerHTML = '<span class="text-rose-600">Failed to connect to Gemini AI. Check your API key.</span>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ask AI';
+      }
+    };
   </script>
 </body>
 </html>
