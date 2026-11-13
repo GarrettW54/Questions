@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -311,8 +311,7 @@
     };
 
     document.getElementById('signout-btn').onclick = () => sb.auth.signOut();
-
-   // AI Assistant Question Handler (Direct to Gemini)
+// AI Assistant Question Handler (Direct to Gemini)
     document.getElementById('ai-form').onsubmit = async (e) => {
       e.preventDefault();
       const input = document.getElementById('ai-input');
@@ -326,7 +325,7 @@
       responseBox.classList.remove('hidden');
       responseBox.innerHTML = '<span class="text-slate-400">Consulting AI with live database context...</span>';
 
-      const GEMINI_API_KEY = 'AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig'; // <-- Paste your Google AI Studio key here
+      const GEMINI_API_KEY = 'AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig'; // <-- Double check this key
 
       const prompt = `You are the AI assistant for "Question", a live outage and release date tracking website. 
 Use the live database context below to answer the user's question clearly and concisely. If the answer isn't in the context, use your general knowledge.
@@ -337,37 +336,27 @@ ${JSON.stringify(allServices)}
 User Question: ${question}`;
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AQ.Ab8RN6JkYjcLM7igZwvz8414Zcn-ay4ces0_-HGmyvLqUiZIig}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         const data = await res.json();
+        
+        if (data.error) {
+          throw new Error(data.error.message || 'API Error');
+        }
+
         const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an answer right now.";
         responseBox.textContent = answer;
       } catch (err) {
-        responseBox.innerHTML = '<span class="text-rose-600">Failed to connect to Gemini AI. Check your API key.</span>';
+        responseBox.innerHTML = `<span class="text-rose-600">Error: ${err.message || 'Failed to connect to Gemini AI.'}</span>`;
       } finally {
         btn.disabled = false;
         btn.textContent = 'Ask AI';
       }
     };
-    // Calculate Countdown Badge
-    function getCountdownBadge(dateStr) {
-      if (!dateStr) return { text: 'TBA', class: 'bg-slate-100 text-slate-600 border-slate-200' };
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const target = new Date(dateStr);
-      target.setHours(0,0,0,0);
-      const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-
-      if (diffDays < 0) return { text: `Released ${Math.abs(diffDays)}d ago`, class: 'bg-slate-100 text-slate-600 border-slate-200' };
-      if (diffDays === 0) return { text: 'Dropping Today!', class: 'bg-rose-50 text-rose-700 border-rose-200' };
-      if (diffDays === 1) return { text: 'Tomorrow', class: 'bg-amber-50 text-amber-700 border-amber-200' };
-      return { text: `In ${diffDays} days`, class: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
-    }
-
     // Load Services
     async function loadServices() {
       const { data, error } = await sb.from('services').select('*').order('reports_count', { ascending: false });
